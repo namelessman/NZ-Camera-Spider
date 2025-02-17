@@ -104,6 +104,9 @@ def upload_images_in_folder(folder_path, folder_id=None):
         image_path = os.path.join(folder_path, image_file)
         upload_to_google_drive(image_path, folder_id)
 
+def upload_log_file(log_file, folder_id=None):
+    upload_to_google_drive(log_file, folder_id)
+
 def main():
     data = fetch_camera_data()
     if not data:
@@ -119,6 +122,7 @@ def main():
         download_image(camera)
 
     upload_images_in_folder(output_dir, google_drive_folder_id)
+    upload_log_file(log_file, google_drive_folder_id)
 
 if __name__ == "__main__":
     main()
