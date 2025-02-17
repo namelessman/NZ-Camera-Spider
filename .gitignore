@@ -3,3 +3,4 @@ camera_images/
 manual_test_images/
 *.log
 logs/
+.env
