@@ -1,0 +1,33 @@
+name: Fetch Images and Upload Images to Google Drive
+
+on:
+  schedule:
+    - cron: "10,20,30,40,50,0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies from requirements.txt
+        run: |
+          if [ ! -f requirements.txt ]; then
+            echo "requirements.txt not found"
+            exit 1
+          fi
+          pip install -r requirements.txt
+
+      - name: Run upload script
+        env:
+          GDRIVE_SERVICE_ACCOUNT: ${{ secrets.GDRIVE_SERVICE_ACCOUNT }}
+        run: |
+          python main.py

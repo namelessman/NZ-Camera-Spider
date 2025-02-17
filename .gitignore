@@ -1,0 +1,5 @@
+google_service_account.json
+camera_images/
+manual_test_images/
+*.log
+logs/
