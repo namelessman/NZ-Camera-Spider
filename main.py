@@ -76,36 +76,43 @@ def download_image(camera):
     except RequestException as e:
         logging.error(f"Download error {camera.get('id')}: {e}")
 
-def upload_to_google_drive(file_path, folder_id=None, retries=3):
-    file_name = os.path.basename(file_path)
-    file_metadata = {'name': file_name, 'parents': [folder_id] if folder_id else []}
-    media = MediaFileUpload(file_path, mimetype='image/jpeg')
-
-    for attempt in range(1, retries + 1):
-        try:
-            uploaded_file = drive_service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id'
-            ).execute()
-            logging.info(f"Uploaded: {file_name}, File ID: {uploaded_file.get('id')}")
-            return
-        except Exception as e:
-            logging.error(f"Upload failed (Attempt {attempt}): {file_name}, Error: {e}")
-            time.sleep(2 ** attempt)
-    logging.error(f"Upload failed: {file_name} after {retries} attempts")
-
-def upload_images_in_folder(folder_path, folder_id=None):
-    image_files = [f for f in os.listdir(folder_path) if f.endswith(('.jpg', '.png'))]
-    if not image_files:
-        logging.warning(f"No images found in directory {folder_path}")
-        return
-    for image_file in image_files:
-        image_path = os.path.join(folder_path, image_file)
-        upload_to_google_drive(image_path, folder_id)
-
 def upload_log_file(log_file, folder_id=None):
     upload_to_google_drive(log_file, folder_id)
+
+
+def get_or_create_drive_folder(parent_id, folder_name):
+    query = f"name = '{folder_name}' and mimeType = 'application/vnd.google-apps.folder' and '{parent_id}' in parents and trashed = false"
+    response = drive_service.files().list(q=query, fields='files(id)').execute()
+    folders = response.get('files', [])
+    if folders:
+        return folders[0]['id']
+    file_metadata = {
+        'name': folder_name,
+        'mimeType': 'application/vnd.google-apps.folder',
+        'parents': [parent_id]
+    }
+    folder = drive_service.files().create(body=file_metadata, fields='id').execute()
+    return folder['id']
+
+def upload_to_google_drive(file_path, parent_id):
+    relative_path = os.path.relpath(file_path, output_dir)
+    folder_path = os.path.dirname(relative_path).split(os.sep)
+    current_folder = parent_id
+    for folder in folder_path:
+        current_folder = get_or_create_drive_folder(current_folder, folder)
+    file_metadata = {
+        'name': os.path.basename(file_path),
+        'parents': [current_folder]
+    }
+    media = MediaFileUpload(file_path, mimetype='image/jpeg')
+    drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+
+def upload_images_in_folder(folder_path, parent_id):
+    for root, _, files in os.walk(folder_path):
+        for image_file in files:
+            if image_file.endswith(('.jpg', '.png')):
+                image_path = os.path.join(root, image_file)
+                upload_to_google_drive(image_path, parent_id)
 
 def main():
     data = fetch_camera_data()
