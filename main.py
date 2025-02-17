@@ -151,7 +151,7 @@ def main():
     if not data:
         logging.error("No camera data retrieved, exiting")
         return
-    cameras = data.get('response', {}).get('camera', [])[:5]
+    cameras = data.get('response', {}).get('camera', [])
     if not cameras:
         logging.warning("No cameras found in API response")
         return
